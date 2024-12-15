@@ -12,12 +12,16 @@ export class KafkaService implements IKafkaService, OnModuleDestroy {
   private consumer?: Consumer;
 
   constructor(private readonly configService: ConfigService) {
+    const kafkaConfig = this.configService.kafkaConfig;
     this.kafka = new Kafka({
-      clientId: this.configService.kafkaConfig.clientId,
-      brokers: this.configService.kafkaConfig.brokers,
+      clientId: kafkaConfig.clientId,
+      brokers: kafkaConfig.brokers,
+      connectionTimeout: kafkaConfig.connectionTimeout,
+      authenticationTimeout: kafkaConfig.authenticationTimeout,
       retry: {
-        initialRetryTime: 100,
-        retries: 8,
+        initialRetryTime: kafkaConfig.initialRetryTime,
+        retries: kafkaConfig.retries,
+        maxRetryTime: kafkaConfig.maxRetryTime,
       },
     });
 
@@ -50,7 +54,7 @@ export class KafkaService implements IKafkaService, OnModuleDestroy {
       const message = {
         value: JSON.stringify({
           data,
-          timestamp: Date.now(), // Use numeric timestamp instead of Date object
+          timestamp: Date.now(),
         }),
       };
 
@@ -95,8 +99,8 @@ export class KafkaService implements IKafkaService, OnModuleDestroy {
             const parsedValue = JSON.parse(value);
             const kafkaMessage: KafkaMessage = {
               topic,
-              value: parsedValue.data, // Extract the data from the message
-              timestamp: new Date(parsedValue.timestamp).toISOString(), // Convert numeric timestamp back to ISO string
+              value: parsedValue.data,
+              timestamp: new Date(parsedValue.timestamp).toISOString(),
             };
             await handler(kafkaMessage);
             this.logger.log(`Processed message from topic ${topic}`);
